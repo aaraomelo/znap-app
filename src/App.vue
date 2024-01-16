@@ -1,21 +1,21 @@
 <template>
   <v-app>
     <v-main>
+      <NavigationDrawer/>
       <router-view/>
     </v-main>
   </v-app>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { Options, Vue } from 'vue-class-component';
+import NavigationDrawer from '@/components/NavigationDrawer.vue';
 
-export default defineComponent({
-  name: 'App',
-
-  data () {
-    return {
-      //
-    }
+@Options({
+  components: {
+    NavigationDrawer,
   },
 })
+export default class App extends Vue {
+}
 </script>
