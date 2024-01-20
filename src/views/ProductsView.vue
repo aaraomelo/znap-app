@@ -1,38 +1,46 @@
 <template>
   <v-data-table-server v-model:items-per-page="filter.itemsPerPage" :headers="headers" :items-length="total"
     :items="items" :loading="loading" item-value="name" @update:options="loadItems">
-
     <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
       <tr>
         <template v-for="column in columns" :key="column.key">
           <td>
-            <span class="mr-2 cursor-pointer" @click="() => toggleSort(column)">
+            <span class="mr-2 cursor-pointer" @click="() => ((column.filter ?? true) && toggleSort(column))">
               {{ column.title }}
             </span>
-            <v-menu ffset-y :close-on-content-click="false">
-              <template v-slot:activator="{ props }">
-                <v-btn v-bind="props">
-                  <v-icon small>
-                    mdi-filter
-                  </v-icon>
-                </v-btn>
-              </template>
-              <div style="background-color: white; width: 280px">
-                <v-autocomplete :filter="() => 2" :type="column?.headerProps?.type ?? 'text'" :label="column.title"
-                  v-model="keywords[column.key!]" :items="autocomplete?.[column.key!] ?? []"
-                  :loading="loadingAutocomplete?.[column.key!] ?? false"
-                  @input="(e: any) => autocompleteItems(column.key!, e.target.value)"
-                  @focus="() => autocompleteItems(column.key!, keywords[column.key!] ?? '')"></v-autocomplete>
-                <v-btn @click="keywords[column.key!] = ''" small color="primary" class="ml-2 mb-2">Limpar</v-btn>
-              </div>
-            </v-menu>
-
+            <template v-if="column.filter ?? true">
+              <v-menu ffset-y :close-on-content-click="false">
+                <template v-slot:activator="{ props }">
+                  <v-btn v-bind="props">
+                    <v-icon small>
+                      mdi-filter
+                    </v-icon>
+                  </v-btn>
+                </template>
+                <div style="background-color: white; width: 280px">
+                  <v-autocomplete :type="column?.headerProps?.type ?? 'text'" :label="column.title"
+                    v-model="keywords[column.key!]" :items="autocomplete?.[column.key!] ?? []"
+                    :loading="loadingAutocomplete?.[column.key!] ?? false"
+                    @input="(e: any) => autocompleteItems(column.key!, e.target.value)"
+                    @focus="() => autocompleteItems(column.key!, keywords[column.key!] ?? '')"></v-autocomplete>
+                  <v-btn @click="keywords[column.key!] = ''" small color="primary" class="ml-2 mb-2">Limpar</v-btn>
+                </div>
+              </v-menu>
+            </template>
             <template v-if="isSorted(column)">
               <v-icon :icon="getSortIcon(column)"></v-icon>
             </template>
           </td>
         </template>
       </tr>
+    </template>
+    <template v-slot:[`item.actions`]="{ item }">
+      <v-icon size="small" class="me-2" @click="editItem(item)">
+        mdi-pencil
+      </v-icon>
+      <v-icon size="small" @click="deleteItem(item)">
+        mdi-delete
+      </v-icon>
     </template>
   </v-data-table-server>
 </template>
@@ -55,6 +63,7 @@ export default class ProductsView extends Vue {
     },
     { title: 'Estoque (UN)', key: 'stock_quantity', headerProps: { type: 'number' } },
     { title: 'Categoria', key: 'category.name' },
+    { key: 'actions', sortable: false, filter: false },
   ]
   items = []
   loading = true
@@ -127,6 +136,14 @@ export default class ProductsView extends Vue {
     }
     this.autocompleteDebounceTimer = setTimeout(handlerAutocomplete, 300);
   }
+  editItem(item: any) {
+    console.log(item);
+
+  }
+  deleteItem(item: any) {
+    console.log(item);
+
+  }
 
   mounted() {
     this.stopFilterWatcher = this.$watch(
@@ -148,5 +165,3 @@ export default class ProductsView extends Vue {
   }
 }
 </script>
-<!-- https://codepen.io/BrunoPanassi/pen/dyNQZQP -->
-<!-- https://vuetifyjs.com/en/components/data-tables/basics/#headers-slot -->
