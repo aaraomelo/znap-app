@@ -1,6 +1,74 @@
 <template>
   <v-data-table-server v-model:items-per-page="filter.itemsPerPage" :headers="headers" :items-length="total"
     :items="items" :loading="loading" item-value="name" @update:options="loadItems">
+    <template v-slot:top>
+      <v-toolbar flat>
+        <v-toolbar-title>Produtos</v-toolbar-title>
+        <v-divider class="mx-4" inset vertical></v-divider>
+        <v-spacer></v-spacer>
+        <v-dialog v-model="dialog" max-width="500px">
+          <template v-slot:activator="{ props }">
+            <v-btn color="primary" dark class="mb-2" v-bind="props">
+              Novo Produto
+            </v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              <span class="text-h5">{{ formTitle }}</span>
+            </v-card-title>
+
+            <v-card-text>
+              <v-container>
+                <v-row>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field v-model="editedItem.name" label="Nome"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field v-model="editedItem.description" label="Descrição"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field v-model="editedItem.price" label="Preço"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-text-field v-model="editedItem.stock_quantity" label="Estoque (UN)"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6" md="4">
+                    <v-autocomplete type="text" label="Categoria" item-title="name" item-value="id"
+                      v-model="editedItem.category_id" :items="categories" :loading="false"
+                      @input="(e: any) => loadCategories()" @focus="() => loadCategories()">
+                      <template v-slot:item="{ props, item }">
+                        <v-list-item v-bind="props" :title="item.raw.name"></v-list-item>
+                      </template>
+                    </v-autocomplete>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue-darken-1" variant="text" @click="close">
+                Cancel
+              </v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="save">
+                Save
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog v-model="dialogDelete" max-width="500px">
+          <v-card>
+            <v-card-title class="text-h5">Are you sure you want to delete this item?</v-card-title>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue-darken-1" variant="text" @click="closeDelete">Cancel</v-btn>
+              <v-btn color="blue-darken-1" variant="text" @click="deleteItemConfirm">OK</v-btn>
+              <v-spacer></v-spacer>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-toolbar>
+    </template>
     <template v-slot:headers="{ columns, isSorted, getSortIcon, toggleSort }">
       <tr>
         <template v-for="column in columns" :key="column.key">
@@ -48,8 +116,10 @@
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import productService from '@/services/product.service';
+import productCategoriesService from '@/services/product-categories.service';
 import { WatchStopHandle } from 'vue';
 import { formatCurrency } from '@/utils'
+import { computed } from 'vue';
 @Options({})
 export default class ProductsView extends Vue {
   headers: any = [
@@ -70,7 +140,8 @@ export default class ProductsView extends Vue {
   loadingAutocomplete: Record<string, boolean> = {}
   total = 0
   keywords: Record<string, string> = {}
-
+  dialog = false
+  dialogDelete = false
   autocomplete: Record<string, string[]> = {}
   filter: FilterDTO = {
     page: 1,
@@ -78,7 +149,8 @@ export default class ProductsView extends Vue {
     sortKey: null,
     sortOrder: null,
   }
-
+  editedIndex = -1
+  formTitle = computed(() => this.editedIndex === -1 ? 'Novo Produto' : 'Editar Produto')
   loadItems({
     page,
     itemsPerPage,
@@ -114,6 +186,27 @@ export default class ProductsView extends Vue {
         this.loading = false
       })
   }
+  editedItem: any = {}
+
+  categoryFilterDTO: FilterDTO = {
+    filters: {
+      name: ''
+    },
+    page: 1,
+    itemsPerPage: 5,
+    sortKey: 'name',
+    sortOrder: 'asc',
+  };
+  categories: Array<{
+    id: number;
+    name: string;
+  }> = []
+  loadCategories() {
+    productCategoriesService.filterCategories(this.categoryFilterDTO)
+      .then((response) => {
+        this.categories = response.data.data
+      })
+  }
 
   private filterDebounceTimer: number | null = null;
   private stopFilterWatcher: WatchStopHandle | null = null;
@@ -137,12 +230,11 @@ export default class ProductsView extends Vue {
     this.autocompleteDebounceTimer = setTimeout(handlerAutocomplete, 300);
   }
   editItem(item: any) {
-    console.log(item);
-
+    this.dialog = true
+    this.editedIndex = 1
   }
   deleteItem(item: any) {
     console.log(item);
-
   }
 
   mounted() {
@@ -162,6 +254,20 @@ export default class ProductsView extends Vue {
     if (this.stopFilterWatcher) {
       this.stopFilterWatcher();
     }
+  }
+
+  deleteItemConfirm() { }
+
+  close() { 
+    this.editedIndex = -1
+    this.dialog = false
+  }
+
+  closeDelete() { }
+
+  save() {
+    console.log(this.editedItem);
+
   }
 }
 </script>
